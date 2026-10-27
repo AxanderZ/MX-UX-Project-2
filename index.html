@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>StripeRide | Middlesex town shuttle</title>
+  <meta name="description" content="See where the Middlesex School town shuttle is right now and when it reaches Curtis Center, Stop 1, and Stop 2.">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StripeRide">
+  <link rel="icon" href="assets/img/mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/img/mark.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+  <script type="module" src="assets/js/main.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- Header -->
+  <header class="site-header" data-header>
+    <div class="header-blur" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="header-inner">
+      <a class="brand" href="#top" aria-label="StripeRide home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="9" fill="var(--red)"/>
+          <path d="M9 25 L19 7 H23.5 L13.5 25 Z" fill="#fff"/>
+        </svg>
+        <span class="brand-word">StripeRide</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#loop">Stops</a>
+        <a href="#hours">Hours</a>
+        <a class="btn btn-light btn-sm" href="#install">Get the app</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero: the live map -->
+    <section class="hero" id="top" aria-label="Live shuttle map">
+      <div class="map" data-map>
+        <canvas class="map-canvas" data-map-canvas aria-hidden="true"></canvas>
+        <div class="map-labels" data-map-labels aria-hidden="true"></div>
+        <div class="map-shade" aria-hidden="true"></div>
+        <p class="map-fallback" data-map-fallback hidden>The live map needs WebGL. The next stop below still updates in real time.</p>
+      </div>
+
+      <div class="hero-copy" data-hero-copy>
+        <h1 class="hero-title" data-split>Catch the shuttle, not the wait.</h1>
+        <p class="hero-sub">Watch the Middlesex town shuttle move in real time, and leave your dorm right when it’s close.</p>
+      </div>
+
+      <div class="map-controls" data-map-controls>
+        <span class="live-pill" role="status"><span class="live-dot" aria-hidden="true"></span>Live</span>
+        <div class="map-modes" role="group" aria-label="Map view" data-map-modes>
+          <span class="map-modes-thumb" aria-hidden="true" data-mode-thumb></span>
+          <button type="button" data-mode="trip" aria-pressed="true">Next stop</button>
+          <button type="button" data-mode="shuttle" aria-pressed="false">Shuttle</button>
+          <button type="button" data-mode="route" aria-pressed="false">Full route</button>
+        </div>
+      </div>
+      <a class="map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
+
+      <!-- Next stop sheet -->
+      <aside class="sheet" data-sheet aria-label="Next stop">
+        <span class="sheet-grabber" aria-hidden="true"></span>
+        <div class="sheet-main">
+          <div class="sheet-status">
+            <p class="sheet-kicker" data-status-label>Next stop</p>
+            <p class="sheet-stop" aria-live="polite"><span data-next-stop>Stop 1</span></p>
+          </div>
+          <div class="sheet-eta">
+            <p class="eta"><span class="eta-num" data-eta-num>4</span><span class="eta-unit" data-eta-unit>min</span></p>
+            <p class="eta-time" data-eta-time>Arrives 3:42 pm</p>
+          </div>
+        </div>
+        <ol class="trip" data-trip aria-label="Shuttle progress along the loop">
+          <li class="trip-stop" data-trip-stop="0"><span class="trip-node"></span><span class="trip-name">Curtis Center</span></li>
+          <li class="trip-stop" data-trip-stop="1"><span class="trip-node"></span><span class="trip-name">Stop 1</span></li>
+          <li class="trip-stop" data-trip-stop="2"><span class="trip-node"></span><span class="trip-name">Stop 2</span></li>
+          <li class="trip-stop trip-return" data-trip-stop="3"><span class="trip-node"></span><span class="trip-name">Curtis Center</span></li>
+          <li class="trip-track" aria-hidden="true"><span class="trip-fill" data-trip-fill></span><span class="trip-bus" data-trip-bus></span></li>
+        </ol>
+      </aside>
+    </section>
+
+    <!-- Statement, revealed word by word on scroll -->
+    <section class="statement" aria-label="About StripeRide">
+      <div class="statement-pin" data-statement>
+        <p class="statement-text" data-reveal-words>One shuttle runs one loop: Curtis Center, Stop 1, Stop 2, and back again. StripeRide shows you exactly where it is, so you never stand at the curb guessing.</p>
+      </div>
+    </section>
+
+    <!-- The loop -->
+    <section class="loop" id="loop" aria-labelledby="loop-title">
+      <div class="loop-pin" data-loop>
+        <div class="loop-head">
+          <h2 id="loop-title" class="section-title">Three stops. One loop.</h2>
+          <p class="section-sub">The shuttle leaves Curtis Center every 20 minutes, runs down Lowell Road into Concord center, and always comes back to where it started.</p>
+        </div>
+        <div class="loop-route">
+          <ol class="loop-stops" data-loop-stops>
+            <li class="loop-stop" data-loop-stop>
+              <span class="loop-dot" aria-hidden="true"></span>
+              <span class="loop-time">:00</span>
+              <h3 class="loop-name">Curtis Center</h3>
+              <p class="loop-note">Board here. Departs at :00, :20, and :40.</p>
+            </li>
+            <li class="loop-stop" data-loop-stop>
+              <span class="loop-dot" aria-hidden="true"></span>
+              <span class="loop-time">+7 min</span>
+              <h3 class="loop-name">Stop 1</h3>
+              <p class="loop-note">The Keyes Road parking lot, just off Main Street.</p>
+            </li>
+            <li class="loop-stop" data-loop-stop>
+              <span class="loop-dot" aria-hidden="true"></span>
+              <span class="loop-time">+11 min</span>
+              <h3 class="loop-name">Stop 2</h3>
+              <p class="loop-note">117 Thoreau Street by the depot, reached by Sudbury Road.</p>
+            </li>
+            <li class="loop-stop" data-loop-stop>
+              <span class="loop-dot" aria-hidden="true"></span>
+              <span class="loop-time">+19 min</span>
+              <h3 class="loop-name">Curtis Center</h3>
+              <p class="loop-note">Back on campus, ready for the next loop.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Velocity marquee -->
+    <section class="band" aria-hidden="true">
+      <div class="band-track" data-band>
+        <div class="band-row">
+          <span>Curtis Center</span><svg class="band-stripe" viewBox="0 0 40 48"><path d="M2 48 18 0h20L22 48Z"/></svg>
+          <span>Stop 1</span><svg class="band-stripe" viewBox="0 0 40 48"><path d="M2 48 18 0h20L22 48Z"/></svg>
+          <span>Stop 2</span><svg class="band-stripe" viewBox="0 0 40 48"><path d="M2 48 18 0h20L22 48Z"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hours (placeholder schedule; edit SCHEDULE in assets/js/schedule.js and these rows together) -->
+    <section class="hours" id="hours" aria-labelledby="hours-title">
+      <div class="container hours-grid">
+        <div>
+          <h2 id="hours-title" class="section-title">When it runs</h2>
+          <p class="section-sub">A shuttle leaves Curtis Center at :00, :20, and :40 during service hours.</p>
+          <p class="hours-today" data-today></p>
+        </div>
+        <dl class="hours-list" data-hours>
+          <div class="hours-row" data-day="weekday"><dt>Monday to Friday</dt><dd>3:30 – 9:30 pm</dd></div>
+          <div class="hours-row" data-day="sat"><dt>Saturday</dt><dd>10:00 am – 11:00 pm</dd></div>
+          <div class="hours-row" data-day="sun"><dt>Sunday</dt><dd>10:00 am – 8:00 pm</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section class="install" id="install" aria-labelledby="install-title">
+      <div class="container install-inner">
+        <h2 id="install-title" class="install-title">Keep it one tap away.</h2>
+        <p class="section-sub">Add StripeRide to your iPhone home screen and it opens like an app.</p>
+        <ol class="steps">
+          <li><span class="step-n">1</span><span>Open this page in Safari</span></li>
+          <li><span class="step-n">2</span><span>Tap <svg class="inline-icon" viewBox="0 0 24 24" role="img" aria-label="the Share icon"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Share</span></li>
+          <li><span class="step-n">3</span><span>Choose Add to Home Screen</span></li>
+        </ol>
+        <div class="install-actions">
+          <a class="btn btn-red" href="#top" data-to-top>Track the shuttle</a>
+          <button class="btn btn-ghost" type="button" data-copy>
+            <span data-copy-label>Copy link</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-word" data-footer-word aria-hidden="true">StripeRide</div>
+    <div class="container footer-meta">
+      <p>Made for the Middlesex School community in Concord, Massachusetts.</p>
+      <p>© <span data-year>2026</span> StripeRide</p>
+    </div>
+  </footer>
+</body>
+</html>

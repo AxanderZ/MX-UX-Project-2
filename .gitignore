@@ -1,0 +1,7 @@
+data/*.db*
+__pycache__/
+.DS_Store
+
+# Local tooling (Claude Code skills, settings, MCP config)
+.claude/
+.mcp.json
