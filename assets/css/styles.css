@@ -98,8 +98,8 @@ html { scrollbar-color: #333 var(--black); scrollbar-width: thin; }
 .site-header { transition: color 0.4s var(--ease-out); }
 .site-header.is-light { color: var(--black); }
 .site-header.is-light .header-blur i:nth-child(4) { background: linear-gradient(rgba(255, 255, 255, 0.8), transparent); }
-.site-header.is-light .nav a:not(.btn) { color: rgba(0, 0, 0, 0.7); }
-.site-header.is-light .nav a:not(.btn):hover { color: var(--black); background: rgba(0, 0, 0, 0.06); }
+.site-header.is-light .nav > a:not(.btn) { color: rgba(0, 0, 0, 0.7); }
+.site-header.is-light .nav > a:not(.btn):hover { color: var(--black); background: rgba(0, 0, 0, 0.06); }
 .site-header.is-light .btn-light { background: var(--black); color: var(--white); }
 .site-header.is-light :focus-visible { outline-color: var(--black); }
 
@@ -107,11 +107,52 @@ html { scrollbar-color: #333 var(--black); scrollbar-width: thin; }
 .brand-mark { width: 30px; height: 30px; }
 .brand-word { font-size: 20px; font-weight: 600; letter-spacing: -0.03em; }
 .nav { display: flex; align-items: center; gap: 6px; }
-.nav a:not(.btn) {
+.nav > a:not(.btn) {
   padding: 10px 14px; border-radius: 999px; color: rgba(255, 255, 255, 0.82); font-size: 15px;
   transition: color 0.2s, background-color 0.2s;
 }
-.nav a:not(.btn):hover { color: var(--white); background: rgba(255, 255, 255, 0.08); }
+.nav > a:not(.btn):hover { color: var(--white); background: rgba(255, 255, 255, 0.08); }
+.nav > a[aria-current='page'] { color: var(--white); background: rgba(255, 255, 255, 0.1); }
+
+/* ---------- Account (header) ---------- */
+.account { position: relative; display: flex; align-items: center; min-width: 40px; min-height: 40px; }
+.account-signin {
+  min-height: 40px; padding: 0 16px; border-radius: 999px; font-size: 15px; font-weight: 500;
+  box-shadow: inset 0 0 0 1px var(--line); transition: background-color 0.2s;
+}
+.account-signin:hover { background: rgba(255, 255, 255, 0.08); }
+.account-avatar {
+  width: 40px; height: 40px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  background: var(--red); color: var(--white); font-size: 14px; font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16);
+  transition: box-shadow 0.2s;
+}
+.account-avatar:hover, .account-avatar[aria-expanded='true'] { box-shadow: 0 0 0 2px var(--white); }
+.account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-menu {
+  position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; width: 248px; padding: 8px;
+  border-radius: 20px; background: var(--white); color: var(--black);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.account-menu[hidden] { display: none; }
+.account-name { padding: 10px 12px 0; font-weight: 600; letter-spacing: -0.01em; }
+.account-email { padding: 2px 12px 10px; font-size: 13px; color: var(--ink-3); overflow-wrap: anywhere; border-bottom: 1px solid var(--line-dark); margin-bottom: 6px; }
+.account-link { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 12px; font-size: 15px; color: var(--black); }
+.account-link:hover { background: #f2f2f2; }
+.account-menu :focus-visible { outline-color: var(--black); }
+.site-header.is-light .account-signin { box-shadow: inset 0 0 0 1px var(--line-dark); }
+.site-header.is-light .account-signin:hover { background: rgba(0, 0, 0, 0.06); }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 90;
+  max-width: min(460px, calc(100% - 32px)); padding: 14px 20px; border-radius: 16px;
+  background: var(--white); color: var(--black); font-size: 15px; font-weight: 500;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, 140%); opacity: 0;
+  transition: transform 0.6s var(--ease-out), opacity 0.4s var(--ease-out);
+}
+.toast.is-shown { transform: translate(-50%, 0); opacity: 1; }
 
 /* ---------- Hero / map ---------- */
 .hero {
@@ -416,7 +457,8 @@ html.js:not(.is-ready) .header-inner { visibility: hidden; }
 /* ---------- Phone ---------- */
 @media (max-width: 640px) {
   :root { --header-h: 60px; }
-  .nav a:not(.btn) { display: none; }
+  .nav > a:not(.btn) { display: none; }
+  .account-menu { position: fixed; top: calc(var(--header-h) + env(safe-area-inset-top) - 4px); right: var(--gutter); }
   .brand-word { font-size: 18px; }
   .hero-title { font-size: clamp(2.25rem, 10.5vw, 3rem); }
   .hero-sub { margin-top: 12px; font-size: 15px; max-width: 32ch; }

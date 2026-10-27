@@ -92,3 +92,34 @@ export function formatClock(date) {
   h = h % 12 || 12;
   return `${h}:${m} ${ap}`;
 }
+
+// Minutes after leaving Curtis Center that the shuttle reaches each stop: [0, 7, 11].
+export const STOP_OFFSETS = LEGS.reduce((acc, leg, i) => {
+  if (i < LEGS.length - 1) acc.push(acc[acc.length - 1] + (i ? LEGS[i - 1].dwell : 0) + leg.drive);
+  return acc;
+}, [0]);
+
+export const dateKey = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Times the shuttle reaches `stopIndex` (1 or 2) on `day`, within service hours.
+ * Today's list skips times less than two minutes away.
+ * Returns [{ time: 'HH:MM', label: '3:47 pm' }].
+ */
+export function pickupTimes(stopIndex, day, now = new Date()) {
+  const { open, close } = SCHEDULE[dayKey(day)];
+  const first = open[0] * 60 + open[1];
+  const last = close[0] * 60 + close[1];
+  const start = Math.ceil(first / LOOP_MIN) * LOOP_MIN;
+  const isToday = dateKey(day) === dateKey(now);
+  const nowMin = now.getHours() * 60 + now.getMinutes() + 2;
+  const out = [];
+  for (let dep = start; dep < last; dep += LOOP_MIN) {
+    const m = dep + STOP_OFFSETS[stopIndex];
+    if (isToday && m < nowMin) continue;
+    const h = Math.floor(m / 60), mm = m % 60;
+    out.push({ time: `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, label: formatClock(new Date(2000, 0, 1, h, mm)) });
+  }
+  return out;
+}
