@@ -338,6 +338,12 @@ export async function createMap({ container, canvas, labels }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, width < 700 ? 1.75 : 2));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
+    applyInsets();
+  }
+
+  // Shift the projection so the route centers in the part of the map no panel covers.
+  // Cheap enough to call every frame while a panel slides.
+  function applyInsets() {
     const shift = (insets.bottom - insets.top) / 2;
     camera.setViewOffset(width, height, -insets.left / 2, shift, width, height);
     camera.updateProjectionMatrix();
@@ -364,7 +370,8 @@ export async function createMap({ container, canvas, labels }) {
     tmp2.set((minX + maxX) / 2, 0, (minZ + maxZ) / 2);
     const pad = Math.min(56, width * 0.08);
     const x0 = insets.left + pad, x1 = width - pad;
-    const y0 = insets.top + pad, y1 = height - insets.bottom - pad * 0.6;
+    // Extra room at the bottom so the shuttle marker and its pulse don't touch the edge.
+    const y0 = insets.top + pad, y1 = height - insets.bottom - pad * 1.3;
     let lo = 4, hi = 3000;
     for (let k = 0; k < 22; k++) {
       const mid = Math.sqrt(lo * hi);
@@ -527,7 +534,7 @@ export async function createMap({ container, canvas, labels }) {
     setShuttle(p) { progress = p; },
     setNextStop(i) { labelEls.forEach((el, k) => el.classList.toggle('is-next', k === i)); },
     setMode(m) { mode = m; },
-    setInsets(top, bottom, left = 0) { Object.assign(insets, { top, bottom, left }); resize(); },
+    setInsets(top, bottom, left = 0) { Object.assign(insets, { top, bottom, left }); applyInsets(); },
     destroy() { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); renderer.dispose(); },
   };
 }

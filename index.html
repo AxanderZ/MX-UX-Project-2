@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>StripeRide | Middlesex town shuttle</title>
-  <meta name="description" content="See where the Middlesex School town shuttle is right now and when it reaches Curtis Center, Stop 1, and Stop 2.">
+  <meta name="description" content="Track the Middlesex School town shuttle live, check its stops and times, and save a pickup at Stop 1 or Stop 2.">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -16,6 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400..800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/pickup.css">
 
   <script type="importmap">
     { "imports": {
@@ -24,63 +25,69 @@
     } }
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
   <script type="module" src="assets/js/main.js"></script>
   <script type="module" src="assets/js/account.js"></script>
+  <script type="module" src="assets/js/pickup.js"></script>
 </head>
-<body>
-  <a class="skip" href="#main">Skip to content</a>
+<body class="app">
+  <a class="skip" href="#panels">Skip to content</a>
 
-  <!-- Header -->
   <header class="site-header" data-header>
-    <div class="header-blur" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div class="header-inner">
-      <a class="brand" href="#top" aria-label="StripeRide home">
+      <a class="brand" href="#live" aria-label="StripeRide, live map">
         <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
           <rect width="32" height="32" rx="9" fill="var(--red)"/>
           <path d="M9 25 L19 7 H23.5 L13.5 25 Z" fill="#fff"/>
         </svg>
         <span class="brand-word">StripeRide</span>
       </a>
-      <nav class="nav" aria-label="Primary">
-        <a href="#loop">Stops</a>
-        <a href="#hours">Hours</a>
-        <a href="pickup.html">Pickups</a>
-        <div class="account" data-account></div>
-        <a class="btn btn-light btn-sm" href="#install">Get the app</a>
+
+      <!-- Bottom tab bar on phones, centered in the header on wider screens -->
+      <nav class="tabbar" aria-label="Sections" data-tabbar>
+        <a href="#live" data-tab="live">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          <span>Live</span>
+        </a>
+        <a href="#stops" data-tab="stops">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/></svg>
+          <span>Stops</span>
+        </a>
+        <a href="#times" data-tab="times">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Times</span>
+        </a>
+        <a href="#pickups" data-tab="pickups">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M9 15.5l2 2 4-4"/></svg>
+          <span>Pickups</span>
+        </a>
       </nav>
+
+      <div class="account" data-account></div>
     </div>
   </header>
 
-  <main id="main">
-    <!-- Hero: the live map -->
-    <section class="hero" id="top" aria-label="Live shuttle map">
-      <div class="map" data-map>
-        <canvas class="map-canvas" data-map-canvas aria-hidden="true"></canvas>
-        <div class="map-labels" data-map-labels aria-hidden="true"></div>
-        <div class="map-shade" aria-hidden="true"></div>
-        <p class="map-fallback" data-map-fallback hidden>The live map needs WebGL. The next stop below still updates in real time.</p>
-      </div>
+  <main class="stage">
+    <div class="map" data-map>
+      <canvas class="map-canvas" data-map-canvas aria-hidden="true"></canvas>
+      <div class="map-labels" data-map-labels aria-hidden="true"></div>
+      <div class="map-shade" aria-hidden="true"></div>
+      <p class="map-fallback" data-map-fallback hidden>The live map needs WebGL. The next stop below still updates in real time.</p>
+    </div>
 
-      <div class="hero-copy" data-hero-copy>
-        <h1 class="hero-title" data-split>Catch the shuttle, not the wait.</h1>
-        <p class="hero-sub">Watch the Middlesex town shuttle move in real time, and leave your dorm right when it’s close.</p>
+    <div class="map-controls" data-map-controls>
+      <span class="live-pill" role="status"><span class="live-dot" aria-hidden="true"></span>Live</span>
+      <div class="map-modes" role="group" aria-label="Map view" data-map-modes>
+        <span class="map-modes-thumb" aria-hidden="true" data-mode-thumb></span>
+        <button type="button" data-mode="trip" aria-pressed="true">Next stop</button>
+        <button type="button" data-mode="shuttle" aria-pressed="false">Shuttle</button>
+        <button type="button" data-mode="route" aria-pressed="false">Full route</button>
       </div>
+    </div>
+    <a class="map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
 
-      <div class="map-controls" data-map-controls>
-        <span class="live-pill" role="status"><span class="live-dot" aria-hidden="true"></span>Live</span>
-        <div class="map-modes" role="group" aria-label="Map view" data-map-modes>
-          <span class="map-modes-thumb" aria-hidden="true" data-mode-thumb></span>
-          <button type="button" data-mode="trip" aria-pressed="true">Next stop</button>
-          <button type="button" data-mode="shuttle" aria-pressed="false">Shuttle</button>
-          <button type="button" data-mode="route" aria-pressed="false">Full route</button>
-        </div>
-      </div>
-      <a class="map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
-
-      <!-- Next stop sheet -->
-      <aside class="sheet" data-sheet aria-label="Next stop">
+    <div class="panels" id="panels">
+      <!-- Live: next stop -->
+      <section class="panel panel-live sheet" data-panel="live" data-sheet aria-label="Next stop">
         <span class="sheet-grabber" aria-hidden="true"></span>
         <div class="sheet-main">
           <div class="sheet-status">
@@ -99,107 +106,141 @@
           <li class="trip-stop trip-return" data-trip-stop="3"><span class="trip-node"></span><span class="trip-name">Curtis Center</span></li>
           <li class="trip-track" aria-hidden="true"><span class="trip-fill" data-trip-fill></span><span class="trip-bus" data-trip-bus></span></li>
         </ol>
-      </aside>
-    </section>
+        <a class="live-cta" href="#pickups">
+          <span>Riding back from town?</span>
+          <strong>Save a pickup</strong>
+        </a>
+      </section>
 
-    <!-- Statement, revealed word by word on scroll -->
-    <section class="statement" aria-label="About StripeRide">
-      <div class="statement-pin" data-statement>
-        <p class="statement-text" data-reveal-words>One shuttle runs one loop: Curtis Center, Stop 1, Stop 2, and back again. StripeRide shows you exactly where it is, so you never stand at the curb guessing.</p>
-      </div>
-    </section>
+      <!-- Stops -->
+      <section class="panel panel-tall" data-panel="stops" aria-labelledby="stops-title">
+        <span class="sheet-grabber" aria-hidden="true"></span>
+        <h2 class="panel-title" id="stops-title">Stops</h2>
+        <p class="panel-sub">One loop, about 20 minutes. The shuttle always returns to Curtis Center.</p>
+        <ol class="stoplist" data-stoplist>
+          <li class="stoprow" data-stop-row="0">
+            <span class="stop-dot" aria-hidden="true"></span>
+            <div class="stop-info">
+              <h3 class="stop-name">Curtis Center</h3>
+              <p class="stop-where">Middlesex campus. Board here.</p>
+              <p class="stop-badge" data-stop-badge></p>
+            </div>
+            <div class="stop-next"><span class="stop-next-time" data-stop-next></span><span class="stop-next-in" data-stop-in></span></div>
+          </li>
+          <li class="stoprow" data-stop-row="1">
+            <span class="stop-dot" aria-hidden="true"></span>
+            <div class="stop-info">
+              <h3 class="stop-name">Stop 1</h3>
+              <p class="stop-where">Keyes Road lot, off Main Street</p>
+              <p class="stop-badge" data-stop-badge></p>
+            </div>
+            <div class="stop-next"><span class="stop-next-time" data-stop-next></span><span class="stop-next-in" data-stop-in></span></div>
+          </li>
+          <li class="stoprow" data-stop-row="2">
+            <span class="stop-dot" aria-hidden="true"></span>
+            <div class="stop-info">
+              <h3 class="stop-name">Stop 2</h3>
+              <p class="stop-where">117 Thoreau Street, by the depot</p>
+              <p class="stop-badge" data-stop-badge></p>
+            </div>
+            <div class="stop-next"><span class="stop-next-time" data-stop-next></span><span class="stop-next-in" data-stop-in></span></div>
+          </li>
+        </ol>
+        <p class="panel-note">Back to Curtis Center by Belknap Street, Main Street, and Lowell Road.</p>
+      </section>
 
-    <!-- The loop -->
-    <section class="loop" id="loop" aria-labelledby="loop-title">
-      <div class="loop-pin" data-loop>
-        <div class="loop-head">
-          <h2 id="loop-title" class="section-title">Three stops. One loop.</h2>
-          <p class="section-sub">The shuttle leaves Curtis Center every 20 minutes, runs down Lowell Road into Concord center, and always comes back to where it started.</p>
-        </div>
-        <div class="loop-route">
-          <ol class="loop-stops" data-loop-stops>
-            <li class="loop-stop" data-loop-stop>
-              <span class="loop-dot" aria-hidden="true"></span>
-              <span class="loop-time">:00</span>
-              <h3 class="loop-name">Curtis Center</h3>
-              <p class="loop-note">Board here. Departs at :00, :20, and :40.</p>
-            </li>
-            <li class="loop-stop" data-loop-stop>
-              <span class="loop-dot" aria-hidden="true"></span>
-              <span class="loop-time">+7 min</span>
-              <h3 class="loop-name">Stop 1</h3>
-              <p class="loop-note">The Keyes Road parking lot, just off Main Street.</p>
-            </li>
-            <li class="loop-stop" data-loop-stop>
-              <span class="loop-dot" aria-hidden="true"></span>
-              <span class="loop-time">+11 min</span>
-              <h3 class="loop-name">Stop 2</h3>
-              <p class="loop-note">117 Thoreau Street by the depot, reached by Sudbury Road.</p>
-            </li>
-            <li class="loop-stop" data-loop-stop>
-              <span class="loop-dot" aria-hidden="true"></span>
-              <span class="loop-time">+19 min</span>
-              <h3 class="loop-name">Curtis Center</h3>
-              <p class="loop-note">Back on campus, ready for the next loop.</p>
-            </li>
-          </ol>
-        </div>
-      </div>
-    </section>
+      <!-- Times -->
+      <section class="panel panel-tall" data-panel="times" aria-labelledby="times-title">
+        <span class="sheet-grabber" aria-hidden="true"></span>
+        <h2 class="panel-title" id="times-title">Times</h2>
+        <p class="times-status" data-times-status></p>
 
-    <!-- Velocity marquee -->
-    <section class="band" aria-hidden="true">
-      <div class="band-track" data-band>
-        <div class="band-row">
-          <span>Curtis Center</span><svg class="band-stripe" viewBox="0 0 40 48"><path d="M2 48 18 0h20L22 48Z"/></svg>
-          <span>Stop 1</span><svg class="band-stripe" viewBox="0 0 40 48"><path d="M2 48 18 0h20L22 48Z"/></svg>
-          <span>Stop 2</span><svg class="band-stripe" viewBox="0 0 40 48"><path d="M2 48 18 0h20L22 48Z"/></svg>
-        </div>
-      </div>
-    </section>
+        <h3 class="panel-h3" data-runs-title>Next runs</h3>
+        <table class="runs">
+          <thead><tr><th scope="col">Leaves Curtis</th><th scope="col">Stop 1</th><th scope="col">Stop 2</th></tr></thead>
+          <tbody data-runs></tbody>
+        </table>
 
-    <!-- Hours (placeholder schedule; edit SCHEDULE in assets/js/schedule.js and these rows together) -->
-    <section class="hours" id="hours" aria-labelledby="hours-title">
-      <div class="container hours-grid">
-        <div>
-          <h2 id="hours-title" class="section-title">When it runs</h2>
-          <p class="section-sub">A shuttle leaves Curtis Center at :00, :20, and :40 during service hours.</p>
-          <p class="hours-today" data-today></p>
-        </div>
+        <h3 class="panel-h3">Service hours</h3>
         <dl class="hours-list" data-hours>
           <div class="hours-row" data-day="weekday"><dt>Monday to Friday</dt><dd>3:30 – 9:30 pm</dd></div>
           <div class="hours-row" data-day="sat"><dt>Saturday</dt><dd>10:00 am – 11:00 pm</dd></div>
           <div class="hours-row" data-day="sun"><dt>Sunday</dt><dd>10:00 am – 8:00 pm</dd></div>
         </dl>
-      </div>
-    </section>
+        <p class="panel-note">A shuttle leaves Curtis Center at :00, :20, and :40 during service hours.</p>
+      </section>
 
-    <!-- Install -->
-    <section class="install" id="install" aria-labelledby="install-title">
-      <div class="container install-inner">
-        <h2 id="install-title" class="install-title">Keep it one tap away.</h2>
-        <p class="section-sub">Add StripeRide to your iPhone home screen and it opens like an app.</p>
-        <ol class="steps">
-          <li><span class="step-n">1</span><span>Open this page in Safari</span></li>
-          <li><span class="step-n">2</span><span>Tap <svg class="inline-icon" viewBox="0 0 24 24" role="img" aria-label="the Share icon"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg> Share</span></li>
-          <li><span class="step-n">3</span><span>Choose Add to Home Screen</span></li>
-        </ol>
-        <div class="install-actions">
-          <a class="btn btn-red" href="#top" data-to-top>Track the shuttle</a>
-          <button class="btn btn-ghost" type="button" data-copy>
-            <span data-copy-label>Copy link</span>
-          </button>
-        </div>
-      </div>
-    </section>
-  </main>
+      <!-- Pickups -->
+      <section class="panel panel-tall" data-panel="pickups" aria-labelledby="pickups-title">
+        <span class="sheet-grabber" aria-hidden="true"></span>
+        <h2 class="panel-title" id="pickups-title">Pickups</h2>
+        <p class="panel-sub">Save your ride back from town. Your name goes on the driver’s list, like the pad on the shuttle.</p>
+        <p class="pk-demo" data-demo hidden>Demo mode: Firebase isn’t connected, so pickups stay in this browser.</p>
 
-  <footer class="footer">
-    <div class="footer-word" data-footer-word aria-hidden="true">StripeRide</div>
-    <div class="container footer-meta">
-      <p>Made for the Middlesex School community in Concord, Massachusetts.</p>
-      <p>© <span data-year>2026</span> StripeRide</p>
+        <form class="pk-form" data-form novalidate>
+          <div class="pk-gate" data-gate hidden>
+            <h3 class="pk-gate-title">Sign in to save a pickup</h3>
+            <p class="pk-gate-text">Use your Middlesex Google account so the driver knows who to wait for.</p>
+            <button class="btn btn-dark" type="button" data-gate-signin>
+              <svg class="g-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9Z"/></svg>
+              Sign in with Google
+            </button>
+          </div>
+
+          <fieldset class="pk-field">
+            <legend class="pk-label">Day</legend>
+            <div class="pk-pills">
+              <label class="pk-pill"><input type="radio" name="day" value="0" checked><span data-day-label="0">Today</span></label>
+              <label class="pk-pill"><input type="radio" name="day" value="1"><span data-day-label="1">Tomorrow</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="pk-field">
+            <legend class="pk-label">Pickup stop</legend>
+            <div class="pk-stops">
+              <label class="pk-stop">
+                <input type="radio" name="stop" value="stop1" checked>
+                <span class="pk-stop-name">Stop 1</span>
+                <span class="pk-stop-where">Keyes Road lot, off Main Street</span>
+              </label>
+              <label class="pk-stop">
+                <input type="radio" name="stop" value="stop2">
+                <span class="pk-stop-name">Stop 2</span>
+                <span class="pk-stop-where">117 Thoreau Street, by the depot</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="pk-field">
+            <legend class="pk-label">Pickup time</legend>
+            <div class="pk-times" data-times></div>
+            <p class="pk-empty" data-times-empty hidden></p>
+          </fieldset>
+
+          <div class="pk-field">
+            <label class="pk-label" for="pk-name">Name for the driver’s list</label>
+            <input class="pk-input" id="pk-name" name="name" autocomplete="name" maxlength="60" required>
+          </div>
+
+          <div class="pk-submit">
+            <button class="btn btn-red" type="submit" data-submit>Save pickup</button>
+            <p class="pk-status" data-status role="status" aria-live="polite"></p>
+          </div>
+        </form>
+
+        <section class="pk-section" aria-labelledby="pk-mine-title">
+          <h3 class="panel-h3" id="pk-mine-title">Your pickups</h3>
+          <ol class="pk-mine" data-mine></ol>
+          <p class="pk-muted" data-mine-empty>Nothing saved yet. Your pickups for today and tomorrow show up here.</p>
+        </section>
+
+        <section class="pk-section" aria-labelledby="pk-list-title">
+          <h3 class="panel-h3" id="pk-list-title" data-list-title>Today’s list</h3>
+          <p class="pk-muted">Everyone the driver will look for, by run.</p>
+          <div class="pk-list" data-list></div>
+        </section>
+      </section>
     </div>
-  </footer>
+  </main>
 </body>
 </html>

@@ -8,13 +8,7 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || new UR
 const STOP_NAMES = { stop1: 'Stop 1', stop2: 'Stop 2' };
 const STOP_INDEX = { stop1: 1, stop2: 2 };
 
-$('[data-year]').textContent = new Date().getFullYear();
 $('[data-demo]').hidden = !isDemo;
-
-const header = $('[data-header]');
-const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 24);
-window.addEventListener('scroll', onScroll, { passive: true });
-onScroll();
 
 const form = $('[data-form]');
 const gate = $('[data-gate]');
@@ -170,20 +164,6 @@ form.addEventListener('submit', async (e) => {
     updateSubmit();
   }
 });
-
-/* ---------- Entrance ---------- */
-const title = $('[data-split]');
-if (!reduced && window.gsap) {
-  const words = title.textContent.trim().split(/\s+/);
-  title.setAttribute('aria-label', title.textContent.trim());
-  title.innerHTML = words.map((w) => `<span class="tw-wrap" aria-hidden="true"><span class="tw">${w}</span></span>`).join(' ');
-  gsap.timeline({ defaults: { ease: 'expo.out' } })
-    .from('.site-header .header-inner > *', { y: -16, opacity: 0, duration: 1.1, stagger: 0.08 }, 0)
-    .from('.tw', { yPercent: 110, duration: 1.3, stagger: 0.06 }, 0.15)
-    .from('.pk-sub, .pk-demo', { y: 16, opacity: 0, filter: 'blur(6px)', duration: 1.1 }, 0.5)
-    .from('.pk-card', { y: 40, opacity: 0, duration: 1.2 }, 0.6)
-    .from('.pk-panel', { y: 32, opacity: 0, duration: 1.2, stagger: 0.1 }, 0.75);
-}
 
 /* ---------- Sign-in gate ---------- */
 let prefilled = '';

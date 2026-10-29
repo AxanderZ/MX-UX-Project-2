@@ -6,13 +6,14 @@ A landing page for the Middlesex School town shuttle: a live 3D map of the shutt
 
 ## What's here
 
-- `index.html`: the home page with the live map
-- `pickup.html`: pickup sign-up (Google sign-in, Stop 1 or Stop 2, time)
+- `index.html`: the app: a full-screen live map with four tabs (Live, Stops, Times, Pickups)
+- `pickup.html`: redirects old links to the Pickups tab
 - `assets/css/styles.css`: styles (black, white, and Middlesex red `#D31245`)
-- `assets/js/main.js`: page motion (GSAP + ScrollTrigger) and the next-stop sheet
+- `assets/js/main.js`: tabs, the next-stop sheet, the Stops and Times panels, and the intro motion (GSAP)
 - `assets/js/map.js`: the 3D map (Three.js)
 - `assets/js/schedule.js`: the shuttle timing model (simulated until real GPS is connected)
-- `assets/js/auth.js`, `assets/js/firebase-config.js`: Google sign-in and pickup storage (Firebase; demo mode until configured)
+- `assets/js/pickup.js`: the Pickups tab
+- `assets/js/auth.js`, `assets/js/firebase-config.js`: Google sign-in (@mxschool.edu only) and pickup storage in Firestore
 - `firestore.rules`: who can read and write pickups
 - `assets/data/concord.json`: streets, buildings, water, and the route, from OpenStreetMap
 

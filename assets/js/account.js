@@ -29,7 +29,7 @@ function render(user, error) {
       <div class="account-menu" data-account-menu hidden>
         <p class="account-name">${esc(user.name)}</p>
         <p class="account-email">${esc(user.email)}${isDemo ? ' (demo)' : ''}</p>
-        <a class="account-link" href="pickup.html">My pickups</a>
+        <a class="account-link" href="index.html#pickups">My pickups</a>
         <button class="account-link" type="button" data-signout>Sign out</button>
       </div>`;
     const btn = slot.querySelector('[data-account-toggle]');
@@ -41,6 +41,7 @@ function render(user, error) {
       menu.hidden = !open;
     });
     slot.querySelector('[data-signout]').addEventListener('click', () => { closeMenu(); signOut(); });
+    menu.querySelector('a').addEventListener('click', closeMenu);
   }
   if (error) showToast(error);
 }

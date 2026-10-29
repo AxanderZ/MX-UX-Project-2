@@ -1,52 +1,12 @@
-import { STOPS, SCHEDULE, dayKey, simNow, getShuttleState, formatClock } from './schedule.js';
+import { STOPS, SCHEDULE, dayKey, simNow, getShuttleState, formatClock, pickupTimes, STOP_OFFSETS } from './schedule.js';
 
-const { gsap, ScrollTrigger } = window;
-gsap.registerPlugin(ScrollTrigger);
-
+const { gsap } = window;
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 // `?still` renders final states without motion (handy for screenshots).
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || new URLSearchParams(location.search).has('still');
-const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 document.documentElement.classList.add('js');
-$('[data-year]').textContent = new Date().getFullYear();
-
-/* ---------- Smooth scroll (desktop only; touch keeps native momentum) ---------- */
-let lenis = null;
-if (!reduced && finePointer && window.Lenis) {
-  lenis = new window.Lenis({ duration: 1.15, easing: (t) => 1 - Math.pow(1 - t, 4) });
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
-  gsap.ticker.lagSmoothing(0);
-}
-
-function scrollToTarget(target) {
-  if (lenis) lenis.scrollTo(target, { offset: 0, duration: 1.4 });
-  else (typeof target === 'number' ? window.scrollTo({ top: target, behavior: reduced ? 'auto' : 'smooth' }) : $(target).scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' }));
-}
-$$('a[href^="#"]').forEach((a) => {
-  a.addEventListener('click', (e) => {
-    const id = a.getAttribute('href');
-    if (id.length < 2 || !$(id)) return;
-    e.preventDefault();
-    scrollToTarget(id === '#top' ? 0 : id);
-  });
-});
-
-/* ---------- Header state ---------- */
-const header = $('[data-header]');
-ScrollTrigger.create({
-  start: 24,
-  end: 'max',
-  onToggle: (self) => header.classList.toggle('is-scrolled', self.isActive),
-});
-ScrollTrigger.create({
-  trigger: '#install',
-  start: 'top 40px',
-  end: 'bottom 40px',
-  onToggle: (self) => header.classList.toggle('is-light', self.isActive),
-});
 
 /* ---------- Map ---------- */
 let map = null;
@@ -54,36 +14,72 @@ let REST = { polar: 0.72, azimuth: 0.18 };
 const mapEl = $('[data-map]');
 try {
   const mod = await import('./map.js');
-  const { createMap } = mod;
   REST = mod.REST;
-  map = await createMap({ container: mapEl, canvas: $('[data-map-canvas]'), labels: $('[data-map-labels]') });
+  map = await mod.createMap({ container: mapEl, canvas: $('[data-map-canvas]'), labels: $('[data-map-labels]') });
 } catch (err) {
   console.warn('Map unavailable', err);
   $('[data-map-fallback]').hidden = false;
   mapEl.classList.add('is-fallback');
 }
 
-const sheet = $('[data-sheet]');
-const heroCopy = $('[data-hero-copy]');
-function updateInsets() {
-  document.documentElement.style.setProperty('--sheet-h', `${sheet.offsetHeight}px`);
-  if (!map) return;
-  // Layout boxes (offset*), not getBoundingClientRect: intro/scroll transforms must not shift the map.
-  const heroH = $('.hero').offsetHeight;
-  const wide = window.innerWidth >= 1100;
-  // Wide screens: the headline sits beside the loop. Narrower: the loop sits below it.
-  const top = wide ? 96 : heroCopy.offsetTop + heroCopy.offsetHeight + 8;
-  const left = wide ? heroCopy.offsetLeft + heroCopy.offsetWidth : 0;
-  // Below wide layouts the view controls sit just above the sheet; keep the map clear of both.
-  const controls = $('[data-map-controls]');
-  const bottomEdge = wide ? sheet.offsetTop : Math.min(sheet.offsetTop, controls.offsetTop);
-  map.setInsets(top, heroH - bottomEdge + 16, left);
-}
-new ResizeObserver(updateInsets).observe(sheet);
-window.addEventListener('resize', updateInsets);
-updateInsets();
+/* ---------- Tabs ----------
+   Each tab is a panel over the map: a bottom sheet on phones, a left column on wider screens.
+   The hash (#live, #stops, #times, #pickups) is the source of truth, so links and Back work. */
+const header = $('[data-header]');
+const tabbar = $('[data-tabbar]');
+const tabs = $$('[data-tab]');
+const panels = $$('[data-panel]');
+const wide = () => window.innerWidth >= 900;
+let current = null;
 
-/* Map view switcher */
+function activePanel() { return panels.find((p) => p.dataset.panel === current) || panels[0]; }
+
+// The part of the screen the map can use, so the camera frames the route there.
+const insets = { top: 0, bottom: 0, left: 0 };
+function targetInsets() {
+  const panel = activePanel();
+  const top = header.offsetHeight;
+  if (wide()) return { top, bottom: 0, left: panel.offsetLeft + panel.offsetWidth };
+  // On phones the map controls float above the Live sheet; keep the shuttle clear of them too.
+  const controls = current === 'live' ? $('[data-map-controls]').offsetHeight + 12 : 0;
+  return { top, bottom: panel.offsetHeight + tabbar.offsetHeight + controls, left: 0 };
+}
+function syncInsets(animate) {
+  const live = $('[data-panel="live"]');
+  document.documentElement.style.setProperty('--live-h', `${live.offsetHeight}px`);
+  if (!map) return;
+  const to = targetInsets();
+  gsap.killTweensOf(insets);
+  if (!animate || reduced) {
+    Object.assign(insets, to);
+    map.setInsets(insets.top, insets.bottom, insets.left);
+    return;
+  }
+  gsap.to(insets, { ...to, duration: 0.7, ease: 'expo.out', onUpdate: () => map.setInsets(insets.top, insets.bottom, insets.left) });
+}
+
+function show(name, { animate = true } = {}) {
+  if (!panels.some((p) => p.dataset.panel === name)) name = 'live';
+  if (name === current) return;
+  current = name;
+  document.body.dataset.view = name;
+  tabs.forEach((t) => {
+    if (t.dataset.tab === name) t.setAttribute('aria-current', 'page');
+    else t.removeAttribute('aria-current');
+  });
+  panels.forEach((p) => {
+    const on = p.dataset.panel === name;
+    p.classList.toggle('is-active', on);
+    p.inert = !on;
+    if (on) p.scrollTop = 0;
+  });
+  if (name === 'stops') renderStops();
+  if (name === 'times') renderTimes();
+  requestAnimationFrame(() => syncInsets(animate));
+}
+window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+
+/* ---------- Map view switcher ---------- */
 const modeBtns = $$('[data-mode]');
 const modeThumb = $('[data-mode-thumb]');
 let mapMode = 'trip';
@@ -98,9 +94,7 @@ modeBtns.forEach((b) => b.addEventListener('click', () => {
   placeThumb();
   map?.setMode(mapMode);
 }));
-placeThumb();
-window.addEventListener('resize', placeThumb);
-document.fonts?.ready.then(placeThumb);
+new ResizeObserver(placeThumb).observe($('[data-map-modes]'));
 
 /* ---------- Live sheet ---------- */
 const els = {
@@ -113,7 +107,7 @@ const els = {
   bus: $('[data-trip-bus]'),
   tripStops: $$('[data-trip-stop]'),
 };
-let last = { stop: '', num: '' };
+const last = { stop: '', num: '', unit: '' };
 
 function rollText(el, value, animate = true) {
   if (el.textContent === value) return;
@@ -125,14 +119,14 @@ function rollText(el, value, animate = true) {
     { yPercent: 0, opacity: 1, filter: 'blur(0px)', duration: 0.7, ease: 'expo.out', clearProps: 'filter' });
 }
 
+let state = getShuttleState(simNow());
 function renderState() {
-  const s = getShuttleState(simNow());
+  const s = (state = getShuttleState(simNow()));
   let label, stop, num, unit, time;
   if (s.mode === 'boarding') {
     label = 'Boarding at';
     stop = STOPS[s.atStop].name;
-    const sec = Math.ceil(s.secondsToNext);
-    num = String(sec);
+    num = String(Math.ceil(s.secondsToNext));
     unit = 'sec';
     time = `Leaves ${formatClock(s.departsAt)}`;
   } else {
@@ -171,57 +165,93 @@ function renderState() {
     map.setNextStop(s.mode === 'boarding' ? s.atStop : s.nextStop);
   }
 }
-renderState();
-gsap.ticker.add(renderState);
 
-/* ---------- Hours: mark today ---------- */
-(function markToday() {
+/* ---------- Stops panel ---------- */
+const minutesUntil = (hhmm, now) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m - (now.getHours() * 60 + now.getMinutes());
+};
+function nextAt(stopIndex) {
+  const today = new Date();
+  const t = pickupTimes(stopIndex, today, today)[0];
+  if (t) return { label: t.label, in: minutesUntil(t.time, today) };
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const first = pickupTimes(stopIndex, tomorrow, today)[0];
+  return first ? { label: first.label, tomorrow: true } : null;
+}
+function renderStops() {
+  const s = state;
+  const here = s.mode === 'boarding' ? s.atStop : null;
+  $$('[data-stop-row]').forEach((row) => {
+    const i = Number(row.dataset.stopRow);
+    const n = nextAt(i);
+    $('[data-stop-next]', row).textContent = n ? n.label : '';
+    $('[data-stop-in]', row).textContent = !n ? 'No more runs' : n.tomorrow ? 'Tomorrow' : n.in <= 1 ? 'Now' : `in ${n.in} min`;
+    const isHere = here === i;
+    const isNext = s.mode === 'driving' && s.nextStop === i;
+    row.classList.toggle('is-here', isHere);
+    row.classList.toggle('is-next', isNext);
+    $('[data-stop-badge]', row).textContent = isHere ? 'Shuttle is here' : isNext ? 'Shuttle heading here' : '';
+  });
+}
+
+/* ---------- Times panel ---------- */
+const clock = (mins) => formatClock(new Date(2000, 0, 1, Math.floor(mins / 60), mins % 60));
+function renderTimes() {
   const now = new Date();
   const key = dayKey(now);
-  const row = $(`[data-day="${key}"]`);
-  if (row) row.classList.add('is-today');
+  $$('[data-day]').forEach((row) => row.classList.toggle('is-today', row.dataset.day === key));
   const { open, close } = SCHEDULE[key];
   const mins = now.getHours() * 60 + now.getMinutes();
   const o = open[0] * 60 + open[1], c = close[0] * 60 + close[1];
-  const fmt = ([h, m]) => formatClock(new Date(2000, 0, 1, h, m));
-  $('[data-today]').textContent =
-    mins >= o && mins < c ? `Running now until ${fmt(close)}.` :
-    mins < o ? `Starts today at ${fmt(open)}.` : 'Done for today. See you tomorrow.';
-})();
+  const running = mins >= o && mins < c;
+  const status = $('[data-times-status]');
+  status.textContent = running ? `Running now until ${clock(c)}.` : mins < o ? `Starts today at ${clock(o)}.` : 'Done for today.';
+  status.classList.toggle('is-running', running);
 
-/* ---------- Copy link ---------- */
-const copyBtn = $('[data-copy]');
-const copyLabel = $('[data-copy-label]');
-copyBtn.addEventListener('click', async () => {
-  const url = location.origin + location.pathname;
-  try {
-    await navigator.clipboard.writeText(url);
-    copyLabel.textContent = 'Link copied';
-    copyBtn.classList.add('is-done');
-  } catch {
-    copyLabel.textContent = 'Copy failed. Use Share instead.';
+  // Departures from Curtis Center, with when each run reaches Stop 1 and Stop 2.
+  let deps = pickupTimes(0, now, now);
+  let label = 'Next runs';
+  if (!deps.length) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    deps = pickupTimes(0, tomorrow, now);
+    label = 'First runs tomorrow';
   }
-  setTimeout(() => { copyLabel.textContent = 'Copy link'; copyBtn.classList.remove('is-done'); }, 2200);
-});
-
-/* ---------- Word splitting ---------- */
-function splitWords(el, cls = 'w') {
-  const words = el.textContent.trim().split(/\s+/);
-  el.setAttribute('aria-label', el.textContent.trim());
-  el.innerHTML = words.map((w) => `<span class="${cls}-wrap" aria-hidden="true"><span class="${cls}">${w}</span></span>`).join(' ');
-  return $$(`.${cls}`, el);
+  $('[data-runs-title]').textContent = label;
+  const body = $('[data-runs]');
+  body.innerHTML = '';
+  for (const d of deps.slice(0, 6)) {
+    const [h, m] = d.time.split(':').map(Number);
+    const dep = h * 60 + m;
+    const tr = document.createElement('tr');
+    for (const t of [dep, dep + STOP_OFFSETS[1], dep + STOP_OFFSETS[2]]) {
+      const td = document.createElement('td');
+      td.textContent = clock(t);
+      tr.append(td);
+    }
+    body.append(tr);
+  }
 }
 
-/* ---------- Motion ---------- */
+renderState();
+gsap.ticker.add(renderState);
+show(location.hash.slice(1) || 'live', { animate: false });
+new ResizeObserver(() => syncInsets(false)).observe($('[data-panel="live"]'));
+window.addEventListener('resize', () => syncInsets(false));
+setInterval(() => {
+  if (current === 'stops') renderStops();
+  if (current === 'times') renderTimes();
+}, 15000);
+
+/* ---------- Intro ---------- */
 if (reduced) {
   document.documentElement.classList.add('is-ready');
   map?.setMode(mapMode);
 } else {
-  // 1. Page-load moment: the city rises, the loop draws itself, the shuttle arrives.
-  const titleWords = splitWords($('[data-split]'), 'tw');
-  // The intro shows the whole route, then glides down to the shuttle's trip view.
+  // The route draws itself over the whole map, then the camera settles on the shuttle's trip.
   if (map) Object.assign(map.view, { polar: 0.05, azimuth: -0.4, zoom: 1.35, draw: 0, stops: 0, rise: 0, shuttle: 0 });
-
   const intro = gsap.timeline({ defaults: { ease: 'expo.out' }, onStart: () => document.documentElement.classList.add('is-ready') });
   if (map) {
     intro
@@ -233,111 +263,11 @@ if (reduced) {
       .add(() => map.setMode(mapMode), 3.4);
   }
   intro
-    .from('.site-header .header-inner > *', { y: -16, opacity: 0, duration: 1.2, stagger: 0.08 }, 0.4)
-    .from(titleWords, { yPercent: 110, duration: 1.4, stagger: 0.06 }, 0.9)
-    .from('.hero-sub', { y: 16, opacity: 0, filter: 'blur(6px)', duration: 1.2 }, 1.4)
-    .from(sheet, { yPercent: 120, duration: 1.4 }, 2.0)
-    .from('[data-map-controls] > *', { y: -10, opacity: 0, duration: 1, stagger: 0.08 }, 2.3);
-
-  // 2. Leaving the hero: camera lifts to a top-down view, copy drifts away.
-  const heroTl = gsap.timeline({
-    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 0.6 },
-  });
-  heroTl
-    .to(heroCopy, { yPercent: -40, opacity: 0, filter: 'blur(8px)', ease: 'none' }, 0)
-    .to('[data-map]', { yPercent: 28, ease: 'none' }, 0)
-    .to(sheet, { y: 60, opacity: 0, ease: 'power1.in' }, 0.25)
-    .to('[data-map-controls]', { opacity: 0, ease: 'none' }, 0);
-  if (map) {
-    // Scrub a proxy so the intro tween keeps ownership of map.view until it finishes.
-    const lift = { p: 0 };
-    let base = null;
-    heroTl.to(lift, {
-      p: 1, ease: 'none',
-      onUpdate: () => {
-        if (intro.isActive()) return;
-        base ??= { polar: map.view.polar, zoom: map.view.zoom };
-        map.view.polar = base.polar + (0.2 - base.polar) * lift.p;
-        map.view.zoom = base.zoom + 0.5 * lift.p;
-      },
-    }, 0);
-  }
-
-  // 3. Statement: words light up as you scroll (after Magic UI's Text Reveal).
-  const words = splitWords($('[data-reveal-words]'), 'rw');
-  gsap.timeline({
-    scrollTrigger: { trigger: '[data-statement]', start: 'top top', end: '+=140%', pin: true, scrub: 0.5 },
-  }).fromTo(words, { opacity: 0.14 }, { opacity: 1, stagger: 0.1, ease: 'none' })
-    .to({}, { duration: 0.6 });
-
-  // 4. The loop: the red rail fills stop to stop.
-  const rail = $('[data-loop-stops]');
-  const stops = $$('[data-loop-stop]');
-  const mm = gsap.matchMedia();
-  mm.add('(min-width: 900px)', () => {
-    const tl = gsap.timeline({
-      scrollTrigger: { trigger: '[data-loop]', start: 'top top', end: '+=160%', pin: true, scrub: 0.6 },
-    });
-    tl.from('.loop-head > *', { y: 40, opacity: 0, stagger: 0.1, duration: 0.4 }, 0)
-      .fromTo(rail, { '--rail': 0 }, { '--rail': 1, ease: 'none', duration: 2 }, 0.3);
-    stops.forEach((st, i) => {
-      const at = 0.3 + (i / (stops.length - 1)) * 2;
-      tl.fromTo(st, { opacity: 0.2, y: 24 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, at - 0.05);
-      tl.fromTo($('.loop-dot', st), { scale: 0.5 }, { scale: 1, duration: 0.3, ease: 'back.out(3)' }, at);
-    });
-    tl.to({}, { duration: 0.4 });
-  });
-  mm.add('(max-width: 899px)', () => {
-    gsap.fromTo(rail, { '--rail': 0 }, {
-      '--rail': 1, ease: 'none',
-      scrollTrigger: { trigger: rail, start: 'top 70%', end: 'bottom 60%', scrub: 0.5 },
-    });
-    stops.forEach((st) => {
-      gsap.from(st, { opacity: 0.2, x: -12, duration: 0.8, ease: 'expo.out', scrollTrigger: { trigger: st, start: 'top 75%', toggleActions: 'play none none reverse' } });
-    });
-  });
-
-  // 5. Marquee that speeds up and leans with scroll velocity (after Magic UI's Scroll Based Velocity).
-  const band = $('[data-band]');
-  const row = $('.band-row', band);
-  band.append(row.cloneNode(true), row.cloneNode(true));
-  let x = 0, skew = 0;
-  const setX = gsap.quickSetter(band, 'x', 'px');
-  const setSkew = gsap.quickSetter(band, 'skewX', 'deg');
-  const bandST = ScrollTrigger.create({ trigger: '.band', start: 'top bottom', end: 'bottom top' });
-  gsap.ticker.add((_, dt) => {
-    if (!bandST.isActive) return;
-    const v = bandST.getVelocity();
-    const boost = gsap.utils.clamp(-6, 6, v / 300);
-    x -= (0.6 + Math.abs(boost) * 1.6) * (dt / 16.67) * (boost < -0.2 ? -1 : 1);
-    const w = row.offsetWidth;
-    if (x <= -w) x += w;
-    if (x > 0) x -= w;
-    setX(x);
-    skew += (gsap.utils.clamp(-8, 8, -v / 220) - skew) * 0.1;
-    setSkew(skew);
-  });
-
-  // 6. Hours rows wipe in.
-  gsap.from('.hours-row', {
-    clipPath: 'inset(0 0 100% 0)', y: 20, duration: 1.1, ease: 'expo.out', stagger: 0.1,
-    scrollTrigger: { trigger: '[data-hours]', start: 'top 80%' },
-  });
-
-  // 7. Install: the steps count in.
-  gsap.from('.steps li', {
-    y: 24, opacity: 0, duration: 1, ease: 'expo.out', stagger: 0.12,
-    scrollTrigger: { trigger: '.steps', start: 'top 85%' },
-  });
-
-  // 8. Footer wordmark rises letter by letter.
-  const fw = $('[data-footer-word]');
-  fw.innerHTML = [...fw.textContent].map((c) => `<span>${c}</span>`).join('');
-  gsap.from($$('span', fw), {
-    yPercent: 100, ease: 'none', stagger: 0.04,
-    scrollTrigger: { trigger: '.footer', start: 'top bottom', end: 'bottom bottom', scrub: 0.6 },
-  });
+    .from('.site-header .brand, .site-header .account', { y: -16, opacity: 0, duration: 1.2, stagger: 0.08 }, 0.3)
+    .from(tabbar, wide() ? { y: -16, opacity: 0, duration: 1.2 } : { yPercent: 100, duration: 1.2 }, 0.4)
+    .from(activePanel(), wide() ? { x: -40, opacity: 0, duration: 1.3, clearProps: 'transform,opacity' } : { yPercent: 40, opacity: 0, duration: 1.3, clearProps: 'transform,opacity' }, 1.2)
+    .from('[data-map-controls] > *', { y: -10, opacity: 0, duration: 1, stagger: 0.08 }, 2.0);
 }
 
-window.addEventListener('load', () => { updateInsets(); ScrollTrigger.refresh(); });
-document.fonts?.ready.then(() => ScrollTrigger.refresh());
+window.addEventListener('load', () => syncInsets(false));
+document.fonts?.ready.then(() => { placeThumb(); syncInsets(false); });
