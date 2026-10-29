@@ -8,19 +8,22 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || new UR
 
 document.documentElement.classList.add('js');
 
-/* ---------- Map ---------- */
+/* ---------- Map ----------
+   The map (three.js plus street data) loads in the background. The rest of the app
+   works without it, so nothing waits on it and a failure only shows a note. */
 let map = null;
-let REST = { polar: 0.72, azimuth: 0.18 };
 const mapEl = $('[data-map]');
-try {
-  const mod = await import('./map.js');
-  REST = mod.REST;
-  map = await mod.createMap({ container: mapEl, canvas: $('[data-map-canvas]'), labels: $('[data-map-labels]') });
-} catch (err) {
-  console.warn('Map unavailable', err);
-  $('[data-map-fallback]').hidden = false;
-  mapEl.classList.add('is-fallback');
-}
+const mapReady = import('./map.js')
+  .then(async (mod) => ({
+    map: await mod.createMap({ container: mapEl, canvas: $('[data-map-canvas]'), labels: $('[data-map-labels]') }),
+    REST: mod.REST,
+  }))
+  .catch((err) => {
+    console.warn('Map unavailable', err);
+    $('[data-map-fallback]').hidden = false;
+    mapEl.classList.add('is-fallback');
+    return null;
+  });
 
 /* ---------- Tabs ----------
    Each tab is a panel over the map: a bottom sheet on phones, a left column on wider screens.
@@ -246,28 +249,32 @@ setInterval(() => {
 }, 15000);
 
 /* ---------- Intro ---------- */
-if (reduced) {
-  document.documentElement.classList.add('is-ready');
-  map?.setMode(mapMode);
-} else {
-  // The route draws itself over the whole map, then the camera settles on the shuttle's trip.
-  if (map) Object.assign(map.view, { polar: 0.05, azimuth: -0.4, zoom: 1.35, draw: 0, stops: 0, rise: 0, shuttle: 0 });
-  const intro = gsap.timeline({ defaults: { ease: 'expo.out' }, onStart: () => document.documentElement.classList.add('is-ready') });
-  if (map) {
-    intro
-      .to(map.view, { polar: REST.polar, azimuth: REST.azimuth, zoom: 1, duration: 3.2, ease: 'expo.inOut' }, 0)
-      .to(map.view, { rise: 1, duration: 2.4, ease: 'power3.out' }, 0.5)
-      .to(map.view, { draw: 1, duration: 2.2, ease: 'power2.inOut' }, 1.1)
-      .to(map.view, { stops: 1, duration: 1.2, ease: 'power2.out' }, 1.7)
-      .to(map.view, { shuttle: 1, duration: 0.9, ease: 'back.out(2.2)' }, 2.6)
-      .add(() => map.setMode(mapMode), 3.4);
-  }
-  intro
-    .from('.site-header .brand, .site-header .account', { y: -16, opacity: 0, duration: 1.2, stagger: 0.08 }, 0.3)
-    .from(tabbar, wide() ? { y: -16, opacity: 0, duration: 1.2 } : { yPercent: 100, duration: 1.2 }, 0.4)
-    .from(activePanel(), wide() ? { x: -40, opacity: 0, duration: 1.3, clearProps: 'transform,opacity' } : { yPercent: 40, opacity: 0, duration: 1.3, clearProps: 'transform,opacity' }, 1.2)
-    .from('[data-map-controls] > *', { y: -10, opacity: 0, duration: 1, stagger: 0.08 }, 2.0);
+// The app chrome appears right away; the Live sheet slides in through its CSS transition.
+document.documentElement.classList.add('is-ready');
+if (!reduced) {
+  gsap.timeline({ defaults: { ease: 'expo.out' } })
+    .from('.site-header .brand, .site-header .account', { y: -16, opacity: 0, duration: 1.2, stagger: 0.08 }, 0.1)
+    .from(tabbar, wide() ? { y: -16, opacity: 0, duration: 1.2 } : { yPercent: 100, duration: 1.2 }, 0.2)
+    .from('[data-map-controls] > *', { y: -10, opacity: 0, duration: 1, stagger: 0.08 }, 0.6);
 }
+
+// When the map is ready: the route draws itself, then the camera settles on the shuttle's trip.
+mapReady.then((res) => {
+  if (!res) return;
+  map = res.map;
+  renderState();
+  syncInsets(false);
+  if (reduced) { map.setMode(mapMode); return; }
+  const { REST } = res;
+  Object.assign(map.view, { polar: 0.05, azimuth: -0.4, zoom: 1.35, draw: 0, stops: 0, rise: 0, shuttle: 0 });
+  gsap.timeline()
+    .to(map.view, { polar: REST.polar, azimuth: REST.azimuth, zoom: 1, duration: 3.2, ease: 'expo.inOut' }, 0)
+    .to(map.view, { rise: 1, duration: 2.4, ease: 'power3.out' }, 0.5)
+    .to(map.view, { draw: 1, duration: 2.2, ease: 'power2.inOut' }, 1.1)
+    .to(map.view, { stops: 1, duration: 1.2, ease: 'power2.out' }, 1.7)
+    .to(map.view, { shuttle: 1, duration: 0.9, ease: 'back.out(2.2)' }, 2.6)
+    .add(() => map.setMode(mapMode), 3.4);
+});
 
 window.addEventListener('load', () => syncInsets(false));
 document.fonts?.ready.then(() => { placeThumb(); syncInsets(false); });

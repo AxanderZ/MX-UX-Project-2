@@ -9,8 +9,8 @@
 // Lines, stops, and the shuttle keep a minimum on-screen size so they stay readable when
 // zoomed out, and grow to their real size when zoomed in.
 
-import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import * as THREE from '../vendor/three.module.min.js';
+import { RoundedBoxGeometry } from '../vendor/RoundedBoxGeometry.js';
 
 const RED = 0xd31245;
 // Resting camera angle; main.js tweens to these after the intro.

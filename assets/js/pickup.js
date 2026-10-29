@@ -25,6 +25,12 @@ const state = { day: 0, stop: 'stop1', time: null };
 
 $('[data-day-label="1"]').textContent = `Tomorrow, ${weekday(dayFrom(1))}`;
 
+// Selected stop card styling without relying on :has() (older phone browsers).
+function markStop() {
+  $$('.pk-stop').forEach((card) => card.classList.toggle('is-checked', $('input', card).checked));
+}
+markStop();
+
 /* ---------- Time chips ---------- */
 function renderTimes() {
   const times = pickupTimes(STOP_INDEX[state.stop], dayFrom(state.day));
@@ -49,7 +55,7 @@ function renderTimes() {
 form.addEventListener('change', (e) => {
   const { name, value } = e.target;
   if (name === 'day') { state.day = Number(value); renderTimes(); watchDay(); }
-  if (name === 'stop') { state.stop = value; renderTimes(); }
+  if (name === 'stop') { state.stop = value; markStop(); renderTimes(); }
   if (name === 'time') { state.time = value; updateSubmit(); }
 });
 nameInput.addEventListener('input', updateSubmit);

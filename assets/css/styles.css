@@ -240,6 +240,7 @@ body:not([data-view='live']) .map-controls { opacity: 0; visibility: hidden; }
 }
 .panel-tall {
   /* Leave the top of the map visible above the sheet. */
+  max-height: min(64vh, calc(100vh - var(--header-h) - env(safe-area-inset-top) - var(--tab-total) - 72px));
   max-height: min(64dvh, calc(100dvh - var(--header-h) - env(safe-area-inset-top) - var(--tab-total) - 72px));
   overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
   scrollbar-width: thin; scrollbar-color: #d0d0d0 transparent;
@@ -334,10 +335,10 @@ body:not([data-view='live']) .map-controls { opacity: 0; visibility: hidden; }
 .hours-row.is-today dd { color: var(--black); }
 
 /* ---------- First paint: hold chrome until the intro starts ---------- */
-html.js:not(.is-ready) .panel-live,
 html.js:not(.is-ready) .map-controls,
 html.js:not(.is-ready) .header-inner,
 html.js:not(.is-ready) .tabbar { visibility: hidden; }
+html.js:not(.is-ready) .panel.is-active { opacity: 0; transform: translateY(40px); }
 
 /* ---------- Wider screens: tabs in the header, panels as a left column ---------- */
 @media (min-width: 900px) {
@@ -364,7 +365,7 @@ html.js:not(.is-ready) .tabbar { visibility: hidden; }
     transform: translateX(-16px);
   }
   .panel-live { top: auto; bottom: 24px; }
-  .panel-tall { max-height: calc(100dvh - var(--header-h) - env(safe-area-inset-top) - 32px); }
+  .panel-tall { max-height: calc(100vh - var(--header-h) - env(safe-area-inset-top) - 32px); max-height: calc(100dvh - var(--header-h) - env(safe-area-inset-top) - 32px); }
   .sheet-grabber { display: none; }
   .panel-title { font-size: 32px; }
 
