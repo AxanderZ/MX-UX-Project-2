@@ -13,7 +13,8 @@ document.documentElement.classList.add('js');
    works without it, so nothing waits on it and a failure only shows a note. */
 let map = null;
 const mapEl = $('[data-map]');
-const mapReady = import('./map.js')
+// Bump ?v= with map changes: GitHub Pages lets browsers cache files for 10 minutes.
+const mapReady = import('./map.js?v=3')
   .then(async (mod) => ({
     map: await mod.createMap({ container: mapEl, canvas: $('[data-map-canvas]'), labels: $('[data-map-labels]') }),
     REST: mod.REST,
