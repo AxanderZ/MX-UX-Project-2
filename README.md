@@ -16,6 +16,7 @@ A landing page for the Middlesex School town shuttle: a live 3D map of the shutt
 - `assets/js/auth.js`, `assets/js/firebase-config.js`: Google sign-in (@mxschool.edu only) and pickup storage in Firestore
 - `firestore.rules`: who can read and write pickups
 - `assets/data/concord.json`: streets, buildings, water, and the route, from OpenStreetMap
+- `manifest.webmanifest`, `sw.js`, `assets/img/icons/`: make it installable as an app (Add to Home Screen on iPhone, Install on Android and desktop Chrome). The service worker is network-first, so it never serves stale files while online; it only falls back to the cache offline.
 
 ## Status
 
