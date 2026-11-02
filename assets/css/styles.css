@@ -36,6 +36,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 body.app { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; }
+/* iPhone home-screen app: iOS can size the viewport shorter than the screen, which
+   floats the tab bar above the bottom. Size the app to the screen and make body the
+   box that fixed children (tab bar, map, sheets) pin to. Set by the script in index.html. */
+html.fit-screen body.app { bottom: auto; height: var(--app-h); contain: layout; }
 img, svg, canvas { display: block; }
 h1, h2, h3, p, ol, dl, dd { margin: 0; }
 ol { padding: 0; list-style: none; }

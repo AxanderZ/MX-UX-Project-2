@@ -18,11 +18,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400..800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=3">
+  <link rel="stylesheet" href="assets/css/styles.css?v=4">
   <link rel="stylesheet" href="assets/css/pickup.css?v=3">
 
   <!-- If scripts fail or stall, never leave the app hidden behind a black screen. -->
   <script>setTimeout(function () { document.documentElement.classList.add('is-ready'); }, 2500);</script>
+  <!-- Home-screen app on iPhone: if iOS reports a viewport shorter than the screen,
+       fill the screen instead of leaving a gap under the tab bar (see styles.css). -->
+  <script>
+    (function () {
+      if (navigator.standalone !== true) return;
+      var root = document.documentElement;
+      function fit() {
+        var portrait = innerHeight >= innerWidth;
+        var a = screen.width, b = screen.height;
+        var sw = portrait ? Math.min(a, b) : Math.max(a, b);
+        var sh = portrait ? Math.max(a, b) : Math.min(a, b);
+        // Only when the app is full screen (not an iPad window) and the gap is a sliver.
+        var gap = sh - innerHeight;
+        root.classList.toggle('fit-screen', Math.abs(innerWidth - sw) < 2 && gap > 0 && gap < 120);
+        root.style.setProperty('--app-h', sh + 'px');
+      }
+      fit();
+      addEventListener('resize', fit);
+    })();
+  </script>
   <script src="assets/vendor/gsap.min.js" defer></script>
   <script type="module" src="assets/js/main.js?v=3"></script>
   <script type="module" src="assets/js/account.js"></script>
